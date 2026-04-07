@@ -11,6 +11,8 @@ Usage:
   python db_init.py reset      # Drop all tables and reinit (dev only)
 """
 
+
+
 import os
 import sys
 from app import create_app, db
