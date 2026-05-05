@@ -123,7 +123,7 @@ def image_diagnosis():
             prediction = predict_image(file_path)
 
             disease_map = {0: "Normal", 1: "Mild Condition", 2: "Severe Condition"}
-            predicted_disease = disease_map.get(prediction.get("predicted_class_index"), "Unknown")
+            predicted_disease = prediction.get("predicted_class", "Unknown")
             prediction["predicted_disease"] = predicted_disease
 
             advice = (
@@ -191,6 +191,7 @@ def multimodal_diagnosis():
     file_path = None
     with Timer("multimodal_diagnosis"):
         try:
+            # Text Prediction
             model_input = {
                 "age": validated["age"],
                 "gender": validated["gender"],
@@ -198,23 +199,25 @@ def multimodal_diagnosis():
                 "severity": validated["severity"],
                 "temperature": validated.get("temperature", 98.6),
                 "pain_level": validated.get("pain_level", 0),
+                "symptom_text": validated.get("symptom_text", "")
             }
             text_pred = predict_text_symptoms(model_input)
 
+            # Image Prediction (if file uploaded)
             image_pred = None
             uploaded = None
 
             if file and file.filename:
-                upload_dir = os.getenv("UPLOAD_FOLDER", "backend/app/static/uploads")
+                upload_dir = os.getenv("UPLOAD_FOLDER", "app/static/uploads")
                 os.makedirs(upload_dir, exist_ok=True)
                 file_path = os.path.join(upload_dir, f"{user_id}_{int(time.time())}_{file.filename}")
                 file.save(file_path)
 
                 image_pred = predict_image(file_path)
-                disease_map = {0: "Normal", 1: "Mild Condition", 2: "Severe Condition"}
-                image_pred["predicted_disease"] = disease_map.get(
-                    image_pred.get("predicted_class_index"), "Unknown"
-                )
+
+                # Clean up image prediction
+                if "predicted_class" in image_pred:
+                    image_pred["predicted_disease"] = image_pred["predicted_class"]
 
                 uploaded = UploadedImage(
                     user_id=user_id,
@@ -223,19 +226,31 @@ def multimodal_diagnosis():
                     processed_status="completed",
                 )
                 db.session.add(uploaded)
+                db.session.flush()
 
+            # Fuse results
             fused = fuse_results(text_result=text_pred, image_result=image_pred)
 
-            advice = f"Prediction: {fused.get('final_prediction')} (Confidence: {fused.get('final_score', 0):.2%}). Consult a doctor."
+            # Improved Advice Generation
+            final_disease = fused.get("final_prediction", "Unknown Condition")
+            final_conf = fused.get("final_confidence", 0.0)
 
+            if final_conf >= 75:
+                advice = f"High confidence assessment suggests {final_disease}. Please consult a doctor as soon as possible for confirmation and treatment."
+            elif final_conf >= 50:
+                advice = f"Moderate confidence for {final_disease}. It is recommended to seek medical evaluation."
+            else:
+                advice = f"Preliminary assessment indicates possible {final_disease} with low confidence ({final_conf:.1f}%). Further clinical evaluation is strongly advised."
+
+            # Create Diagnosis Record
             diagnosis = DiagnosisHistory(
                 user_id=user_id,
                 symptom_text=validated.get("symptom_text", "Multimodal diagnosis"),
                 structured_symptoms_json=validated,
                 text_prediction=text_pred,
                 image_prediction=image_pred,
-                final_prediction=fused.get("final_prediction"),
-                confidence_score=fused.get("final_score", 0.0),
+                final_prediction=final_disease,
+                confidence_score=final_conf,
                 advice=advice,
             )
 
@@ -245,13 +260,20 @@ def multimodal_diagnosis():
             db.session.add(diagnosis)
             db.session.commit()
 
+            # Clean response
             return jsonify({
+                "success": True,
                 "diagnosis_id": diagnosis.id,
+                "final_diagnosis": {
+                    "disease": final_disease,
+                    "confidence": final_conf,
+                    "method": fused.get("method", "unknown")
+                },
                 "text_prediction": text_pred,
                 "image_prediction": image_pred,
                 "fused_result": fused,
                 "advice": advice,
-                "disclaimer": "This is for educational purposes only. Not a substitute for professional medical advice.",
+                "disclaimer": "This is an AI-assisted preliminary assessment for educational purposes only. It is not a substitute for professional medical advice. Always consult a qualified doctor."
             }), 201
 
         except Exception as exc:
@@ -263,8 +285,7 @@ def multimodal_diagnosis():
                 except:
                     pass
             return jsonify({"error": "Multimodal diagnosis failed", "detail": str(exc)}), 500
-
-
+        
 # ====================== NEW FREE NEARBY FACILITIES ENDPOINT ======================
 @diagnosis_bp.route("/nearby-facilities", methods=["GET"])
 @jwt_required()

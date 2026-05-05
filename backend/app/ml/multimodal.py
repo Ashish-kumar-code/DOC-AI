@@ -1,56 +1,74 @@
-import os
-from dotenv import load_dotenv
+"""
+DOC AI - Multimodal Fusion (Text + Image)
+Improved version with better logic and confidence handling.
+"""
 
-load_dotenv()
-
-TEXT_WEIGHT = float(os.getenv("TEXT_WEIGHT", 0.6))
-IMAGE_WEIGHT = float(os.getenv("IMAGE_WEIGHT", 0.4))
-
-
-def fuse_results(text_result=None, image_result=None, text_weight=TEXT_WEIGHT, image_weight=IMAGE_WEIGHT):
+def fuse_results(text_result=None, image_result=None, text_weight=0.6, image_weight=0.4):
+    """
+    Fuse text and image predictions with smart weighted logic.
+    """
     result = {
         "text_result": text_result,
         "image_result": image_result,
         "final_prediction": None,
-        "final_score": 0.0,
-        "method": ""
+        "final_confidence": 0.0,
+        "method": "unknown",
+        "text_confidence": 0.0,
+        "image_confidence": 0.0
     }
 
-    # fallback
-    if text_result is None and image_result is None:
-        raise ValueError("At least one of text_result or image_result must be provided")
+    if not text_result and not image_result:
+        raise ValueError("At least one result (text or image) must be provided")
 
-    if text_result is None:
-        result["final_prediction"] = image_result.get("predicted_disease") or image_result.get("predicted_class_index")
-        result["final_score"] = image_result.get("confidence", 0.0)
-        result["method"] = "image_only"
+    # Only Text
+    if not image_result:
+        result.update({
+            "final_prediction": text_result.get("predicted_disease"),
+            "final_confidence": text_result.get("confidence", 0.0),
+            "method": "text_only"
+        })
         return result
 
-    if image_result is None:
-        result["final_prediction"] = text_result.get("predicted_disease")
-        result["final_score"] = text_result.get("confidence", 0.0)
-        result["method"] = "text_only"
+    # Only Image
+    if not text_result:
+        result.update({
+            "final_prediction": image_result.get("predicted_class") or image_result.get("predicted_disease"),
+            "final_confidence": image_result.get("confidence", 0.0),
+            "method": "image_only"
+        })
         return result
 
+    # Both available - Fusion
     text_conf = float(text_result.get("confidence", 0.0))
     image_conf = float(image_result.get("confidence", 0.0))
 
-    combined_score = text_weight * text_conf + image_weight * image_conf
+    result["text_confidence"] = text_conf
+    result["image_confidence"] = image_conf
 
-    # choose final prediction by higher confidence with weighted bias
-    if text_conf >= image_conf:
-        fused_label = text_result.get("predicted_disease")
+    # Smart fusion logic
+    if text_conf >= 70 and image_conf >= 60:
+        # High confidence in both → strong agreement
+        final_pred = text_result.get("predicted_disease")
+        final_conf = (text_conf * text_weight + image_conf * image_weight)
+        method = "high_confidence_fusion"
+    elif text_conf > image_conf + 15:
+        final_pred = text_result.get("predicted_disease")
+        final_conf = text_conf
+        method = "text_dominant"
+    elif image_conf > text_conf + 15:
+        final_pred = image_result.get("predicted_class") or image_result.get("predicted_disease")
+        final_conf = image_conf
+        method = "image_dominant"
     else:
-        fused_label = image_result.get("predicted_disease", image_result.get("predicted_class_index"))
+        # Close confidence - prefer text (symptoms are generally more reliable)
+        final_pred = text_result.get("predicted_disease")
+        final_conf = text_conf * 0.65 + image_conf * 0.35
+        method = "balanced_fusion"
 
-    result.update(
-        {
-            "final_prediction": fused_label,
-            "final_score": float(combined_score),
-            "method": "weighted_fusion",
-            "text_confidence": text_conf,
-            "image_confidence": image_conf,
-        }
-    )
+    result.update({
+        "final_prediction": final_pred,
+        "final_confidence": round(min(100.0, final_conf), 2),
+        "method": method
+    })
 
     return result

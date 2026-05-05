@@ -100,6 +100,234 @@ Frontend (React + Vite) → REST API (Flask) → ML Services + Database
    python db_init.py db upgrade
    ```
 
+6. **Run the Application**
+   ```bash
+   python run.py
+   ```
+
+### Frontend Setup
+
+1. **Navigate to Frontend**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start Development Server**
+   ```bash
+   npm run dev
+   ```
+
+---
+
+## 📋 Dependencies & Libraries
+
+### Core Framework (5)
+- Flask 2.3.3
+- Flask-Cors 3.0.10
+- Flask-JWT-Extended 4.4.4
+- Flask-SQLAlchemy 3.0.5
+- Flask-Migrate 4.0.4+
+
+### Database (2)
+- SQLAlchemy 2.0.22+
+- SQLAlchemy ORM
+
+### Data Processing (3)
+- pandas 2.1.0
+- numpy 1.26.0
+- joblib 1.3.2
+
+### Machine Learning (6)
+- scikit-learn 1.3.0
+- TensorFlow 2.15.0
+- TensorFlow Keras
+- Pillow 10.0.0
+- OpenCV 4.8.1.76
+- sklearn utilities
+
+### Validation (2)
+- Marshmallow 3.20.1+
+- Pydantic 2.6.0+
+
+### Utilities (5)
+- python-dotenv 1.0.0+
+- requests 2.31.0
+- reportlab 4.4.10
+- psutil 5.9.0
+- pytest 7.4.4
+
+### Application Code (4)
+- error_handler.py (custom exceptions)
+- sanitizer.py (input validation)
+- rate_limiter.py (request throttling)
+- logger.py (structured logging)
+
+### Routes & Models (4)
+- auth routes
+- diagnosis routes
+- admin routes
+- core models
+
+---
+
+## 🧪 Testing
+
+### Run Tests
+```bash
+cd backend
+pytest tests/ -v
+```
+
+### Test Categories
+- Authentication tests
+- Diagnosis endpoint tests
+- Integration tests
+- Admin endpoint tests
+- Error handling tests
+- Input sanitization tests
+- Rate limiting tests
+
+### Test Fixtures
+Located in `tests/conftest.py`:
+- Flask test app fixture
+- Database initialization
+- Test client setup
+- JWT configuration for tests
+
+---
+
+## 🔧 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/profile` - Get user profile
+
+### Diagnosis
+- `POST /api/diagnosis/symptoms` - Symptom-based diagnosis
+- `POST /api/diagnosis/image` - Image-based diagnosis
+- `POST /api/diagnosis/multimodal` - Combined diagnosis
+
+### Location Services
+- `GET /api/location/nearby` - Find nearby medical facilities
+
+### Reports
+- `GET /api/reports/generate` - Generate diagnosis report
+
+### Admin
+- `GET /api/admin/health` - System health check
+- `GET /api/admin/stats` - System statistics
+
+---
+
+## 📁 Project Structure
+
+```
+DOC-AI/
+├── backend/
+│   ├── app/
+│   │   ├── utils/          # Error handling, sanitization, rate limiting, logging
+│   │   ├── routes/         # API endpoints (auth, diagnosis, admin)
+│   │   ├── models/         # Database models
+│   │   ├── ml/            # ML models and processing
+│   │   └── schemas/       # Data validation
+│   ├── tests/             # Comprehensive test suite
+│   ├── requirements.txt   # All dependencies
+│   └── run.py            # Application entry point
+├── frontend/
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── pages/         # Application pages
+│   │   ├── context/       # React context
+│   │   └── api/           # API client
+│   ├── package.json       # Node dependencies
+│   └── vite.config.js     # Vite configuration
+├── datasets/
+│   └── symptom_dataset.csv # Sample training data
+├── logs/                  # Application logs
+├── instance/              # Database files
+└── README.md              # This file
+```
+
+---
+
+## 🚀 Deployment
+
+### GitHub Repository
+1. Create a new repository on GitHub
+2. Push the code:
+   ```bash
+   git remote add origin https://github.com/Ashish-kumar-code/DOC-AI.git
+   git push -u origin main
+   ```
+
+### Production Setup
+1. Set up PostgreSQL database
+2. Configure environment variables
+3. Run database migrations
+4. Build and deploy frontend
+5. Start backend server
+
+### Environment Variables
+Create a `.env` file with:
+```
+FLASK_ENV=production
+SECRET_KEY=your-secret-key
+JWT_SECRET_KEY=your-jwt-secret
+DATABASE_URL=postgresql://user:password@localhost/dbname
+```
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests
+5. Submit a pull request
+
+### Development Guidelines
+- Follow PEP 8 style guide
+- Write tests for new features
+- Update documentation
+- Ensure all imports are verified
+
+---
+
+## 📄 License
+
+This project is for educational purposes. Please consult with legal experts regarding healthcare application licensing and compliance.
+
+---
+
+## 📞 Support
+
+For questions or issues:
+- Check the documentation
+- Run `python verify_imports.py` for dependency issues
+- Review test outputs for debugging
+
+---
+
+## 🔍 Verification
+
+Run the import verification script to ensure all dependencies are properly installed:
+
+```bash
+cd backend
+python verify_imports.py
+```
+
+Expected output: All 31 imports verified successfully.
+   ```
+
 6. **Train ML Models** (Optional)
    ```bash
    python -c "from app.ml.text_model import train_text_model; print(train_text_model())"

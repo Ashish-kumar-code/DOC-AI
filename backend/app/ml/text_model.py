@@ -1,122 +1,134 @@
+"""
+DOC AI - Free-Text Symptom Diagnosis Model (Recommended)
+Uses TF-IDF on natural symptom descriptions + structured features as support.
+Much more user-friendly and scalable.
+"""
+
 import os
 import joblib
 import pandas as pd
-import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.metrics import accuracy_score, classification_report
+import logging
 
-MODEL_PATH = os.getenv("TEXT_MODEL_PATH", "backend/app/ml/text_model.joblib")
+logger = logging.getLogger(__name__)
+
+MODEL_PATH = "app/ml/text_model.joblib"
+DATASET_PATH = "datasets/symptom_dataset.csv"
 
 
-def load_symptom_dataset(csv_path):
-    df = pd.read_csv(csv_path)
-    if "disease" not in df.columns:
-        raise ValueError("Dataset must include disease label")
-    return df
+def train_text_model(force_retrain=False):
+    """Train hybrid free-text + structured model."""
+    if os.path.exists(MODEL_PATH) and not force_retrain:
+        try:
+            model_data = joblib.load(MODEL_PATH)
+            logger.info(f"✅ Loaded existing model. Accuracy: {model_data.get('accuracy', 'N/A')}%")
+            return {"status": "loaded", "accuracy": model_data.get('accuracy')}
+        except Exception:
+            pass
 
+    logger.info("🚀 Training free-text symptom diagnosis model...")
 
-def build_pipeline():
-    numeric_features = ["age", "duration_days", "temperature", "pain_level"]
-    categorical_features = ["gender", "severity"]
+    df = pd.read_csv(DATASET_PATH)
 
-    numeric_transformer = Pipeline([
-        ("scaler", StandardScaler()),
-    ])
+    # Use symptom_text as main feature + structured as support
+    X = df[['symptom_text', 'age', 'gender', 'duration_days', 'severity', 'temperature', 'pain_level']]
+    y = df['disease']
 
-    categorical_transformer = Pipeline([
-        ("encoder", OneHotEncoder(handle_unknown="ignore")),
-    ])
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.25, random_state=42, stratify=y
+    )
+
+    # Text + Structured Preprocessing
+    text_transformer = TfidfVectorizer(
+        max_features=800,
+        stop_words='english',
+        ngram_range=(1, 2),
+        min_df=2
+    )
+
+    numeric_features = ['age', 'duration_days', 'temperature', 'pain_level']
+    categorical_features = ['gender', 'severity']
 
     preprocessor = ColumnTransformer(
         transformers=[
-            ("num", numeric_transformer, numeric_features),
-            ("cat", categorical_transformer, categorical_features),
+            ('text', text_transformer, 'symptom_text'),
+            ('num', StandardScaler(), numeric_features),
+            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features),
         ],
-        remainder="drop",
+        remainder='drop'
     )
 
-    model_pipeline = Pipeline(
-        [
-            ("preprocess", preprocessor),
-            ("classifier", LogisticRegression(max_iter=500)),
-        ]
-    )
+    model = Pipeline([
+        ('preprocessor', preprocessor),
+        ('classifier', RandomForestClassifier(
+            n_estimators=300,
+            max_depth=12,
+            min_samples_split=4,
+            random_state=42,
+            class_weight='balanced',
+            n_jobs=-1
+        ))
+    ])
 
-    return model_pipeline
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred) * 100
 
-
-def evaluate_and_select_model(X_train, X_test, y_train, y_test):
-    models = {
-        "LogisticRegression": LogisticRegression(max_iter=500),
-        "DecisionTree": DecisionTreeClassifier(random_state=42),
-        "RandomForest": RandomForestClassifier(n_estimators=100, random_state=42),
-        "NaiveBayes": GaussianNB(),
+    model_data = {
+        'model': model,
+        'accuracy': round(accuracy, 2),
+        'feature_importance': True
     }
 
-    results = {}
-    for name, clf in models.items():
-        pipe = Pipeline(
-            [
-                ("scaler", StandardScaler()),
-                ("classifier", clf),
-            ]
-        )
-        pipe.fit(X_train, y_train)
-        preds = pipe.predict(X_test)
-        score = accuracy_score(y_test, preds)
-        results[name] = {
-            "score": score,
-            "model": pipe,
-            "report": classification_report(y_test, preds, output_dict=True),
-            "confusion_matrix": confusion_matrix(y_test, preds).tolist(),
+    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+    joblib.dump(model_data, MODEL_PATH)
+
+    logger.info(f"✅ Free-text model trained successfully! Accuracy: {accuracy:.2f}%")
+    print("\nClassification Report:")
+    print(classification_report(y_test, y_pred))
+
+    return {"status": "trained", "accuracy": round(accuracy, 2)}
+
+
+def predict_diagnosis(input_data: dict):
+    """Predict using free-text symptom description (recommended)."""
+    if not os.path.exists(MODEL_PATH):
+        return {"error": "Model not trained. Run train_text_model() first."}
+
+    try:
+        model_data = joblib.load(MODEL_PATH)
+        model = model_data['model']
+
+        # Ensure symptom_text exists
+        if 'symptom_text' not in input_data or not input_data['symptom_text']:
+            input_data['symptom_text'] = " ".join([
+                f"{k}: {v}" for k, v in input_data.items() 
+                if k not in ['symptom_text']
+            ])
+
+        input_df = pd.DataFrame([input_data])
+
+        prediction = model.predict(input_df)[0]
+        proba = model.predict_proba(input_df)[0]
+        confidence = round(float(max(proba)) * 100, 2)
+        confidence = min(100.0, confidence)  # Cap at 100%
+
+        return {
+            "predicted_disease": prediction,
+            "confidence": confidence,
+            "model_accuracy": model_data.get("accuracy"),
+            "recommendation": "This is an AI-assisted preliminary assessment. Please consult a qualified doctor for proper diagnosis and treatment."
         }
 
-    best_name = max(results, key=lambda k: results[k]["score"])
-    return best_name, results[best_name]
+    except Exception as e:
+        return {"error": f"Prediction error: {str(e)}"}
 
 
-def train_text_model(csv_path= "datasets/symptom_dataset.csv"):
-    df = load_symptom_dataset(csv_path)
-    # required columns: age, gender, duration_days, severity, temperature, pain_level, disease
-    df = df.dropna(subset=["disease"])
-
-    X = df[["age", "gender", "duration_days", "severity", "temperature", "pain_level"]]
-    y = df["disease"]
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-
-    best_name, best_result = evaluate_and_select_model(X_train, X_test, y_train, y_test)
-
-    # save best pipeline model
-    best_model = best_result["model"]
-    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-    joblib.dump(best_model, MODEL_PATH)
-
-    return {
-        "best_model": best_name,
-        "accuracy": best_result["score"],
-        "report": best_result["report"],
-        "confusion_matrix": best_result["confusion_matrix"],
-    }
-
-
-def predict_text_symptoms(input_data):
-    if not os.path.exists(MODEL_PATH):
-        raise FileNotFoundError("Text model file not found. Train using train_text_model() first.")
-
-    model = joblib.load(MODEL_PATH)
-    df = pd.DataFrame([input_data])
-    preds = model.predict(df)
-    prob = model.predict_proba(df).max(axis=1).tolist()
-
-    return {
-        "predicted_disease": preds[0],
-        "confidence": float(prob[0]),
-    }
+# Backward compatibility
+predict_text_symptoms = predict_diagnosis

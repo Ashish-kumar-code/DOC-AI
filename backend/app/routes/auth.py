@@ -5,6 +5,8 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from ..extensions import db
 from ..models import User
 from ..schemas.auth_schema import RegisterSchema, LoginSchema
+from ..utils.rate_limiter import rate_limit, POLICIES
+
 
 
 auth_bp = Blueprint("auth_bp", __name__)
@@ -32,7 +34,7 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        access_token = create_access_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))   # Convert to string
         return (
             jsonify({
                 "message": "User registered successfully",
@@ -47,6 +49,7 @@ def register():
 
 
 @auth_bp.route("/login", methods=["POST"])
+@rate_limit(**POLICIES['auth'])   # ← Add this decorator (5 attempts per minute)
 def login():
     data = request.get_json() or {}
     try:
@@ -58,7 +61,7 @@ def login():
     if not user or not user.check_password(validated["password"]):
         return jsonify({"error": "Invalid email or password"}), 401
 
-    access_token = create_access_token(identity=user.id)
+    access_token = create_access_token(identity=str(user.id))
     return jsonify({"message": "Login successful", "access_token": access_token, "user": user.to_dict()}), 200
 
 

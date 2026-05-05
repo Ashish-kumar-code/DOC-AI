@@ -1,65 +1,51 @@
 #!/usr/bin/env python
 """
-Database initialization and migration script.
-Run this from backend/ directory.
-
-Usage:
-  python db_init.py init       # Initialize migrations folder
-  python db_init.py migrate    # Create migration from current models
-  python db_init.py upgrade    # Apply migrations to database
-  python db_init.py downgrade  # Revert last migration
-  python db_init.py reset      # Drop all tables and reinit (dev only)
+DOC AI - Database Initialization & Migration Helper
+Uses modern Flask CLI (no more MigrateCommand)
 """
-
-
 
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Add current directory to path
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
 from app import create_app, db
-from flask_migrate import Migrate, MigrateCommand
-from flask.cli import FlaskGroup
+from flask_migrate import Migrate
 
-os.environ.setdefault("FLASK_ENV", "development")
+app = create_app()
+migrate = Migrate(app, db)
 
-
-def create_migrate_app(info=None):
-    app = create_app()
-    return app
-
-
-if __name__ == "__main__":
-    import click
-    from flask.cli import with_appcontext
-
-    app = create_app()
-    migrate = Migrate(app, db)
-
-    @app.cli.command()
-    @with_appcontext
-    def reset():
-        """Drop all tables and recreate from models. WARNING: Deletes all data!"""
-        confirm = input("⚠️  This will DELETE ALL DATA. Type 'yes' to confirm: ")
-        if confirm.lower() == "yes":
-            db.drop_all()
-            db.create_all()
-            click.echo("✅ Database reset complete.")
+if __name__ == '__main__':
+    with app.app_context():
+        if len(sys.argv) > 1:
+            command = sys.argv[1].lower()
+            
+            if command == "reset":
+                print("🗑️  Dropping all tables...")
+                db.drop_all()
+                print("✅ All tables dropped.")
+                
+                print("🔨 Creating all tables...")
+                db.create_all()
+                print("✅ Database tables created successfully!")
+                print("🎉 Database reset complete.")
+                
+            elif command == "create":
+                db.create_all()
+                print("✅ Database tables created.")
+                
+            elif command == "drop":
+                db.drop_all()
+                print("✅ All tables dropped.")
+                
+            else:
+                print(f"Unknown command: {command}")
+                print("Available commands: reset, create, drop")
         else:
-            click.echo("❌ Reset cancelled.")
-
-    @app.cli.command()
-    @with_appcontext
-    def seed_demo():
-        """Insert demo data for testing."""
-        from app.models import User, ChatSession
-        from datetime import datetime
-
-        user = User(name="Demo User", email="demo@example.com", age=30, gender="other")
-        user.set_password("DemoPass123")
-        db.session.add(user)
-        db.session.commit()
-        click.echo(f"✅ Demo user created: {user.email}")
-
-    # Run Flask CLI
-    from flask_migrate import MigrateCommand
-    cli = FlaskGroup(create_app=create_migrate_app)
-    cli()
+            print("Usage: python db_init.py <command>")
+            print("Commands: reset | create | drop")
