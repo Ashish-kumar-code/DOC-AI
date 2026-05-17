@@ -1,164 +1,136 @@
-import { useState } from 'react'
-import { chatApi, diagnosisApi } from '../api/client'
-import { ErrorAlert, SuccessAlert, Loading, Card, DisclaimerBanner, ConfidenceMeter, Button } from '../components/UiComponents'
+import { useState } from 'react';
+import { diagnosisApi } from '../api/client';
 
 export function DiagnosisPage() {
-  const [activeTab, setActiveTab] = useState('text') // 'text', 'image', 'multimodal'
-  const [chatSessionId, setChatSessionId] = useState(null)
-  const [currentQuestion, setCurrentQuestion] = useState(null)
-  const [messages, setMessages] = useState([])
-  const [userInput, setUserInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [result, setResult] = useState(null)
-  const [collectedData, setCollectedData] = useState(null)
+  const [activeTab, setActiveTab] = useState('text');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState(null);
 
-  const startChat = async () => {
-    setLoading(true)
-    try {
-      const res = await chatApi.startChat()
-      setChatSessionId(res.data.session_id)
-      setCurrentQuestion(res.data.question)
-      setMessages([{ role: 'bot', text: res.data.message }])
-      setError('')
-    } catch (err) {
-      setError('Failed to start chat')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [textForm, setTextForm] = useState({
+    age: 30,
+    gender: 'male',
+    symptom_text: 'I have high fever, dry cough, body ache and fatigue for 5 days',
+    duration_days: 5,
+    severity: 'moderate',
+    temperature: 38.5,
+    pain_level: 7
+  });
 
-  const sendMessage = async () => {
-    if (!userInput.trim()) return
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
-    setMessages((prev) => [...prev, { role: 'user', text: userInput }])
-    setLoading(true)
-
-    try {
-      const res = await chatApi.sendMessage(chatSessionId, userInput)
-      const response = res.data
-
-      if (response.status === 'red_flag') {
-        setMessages((prev) => [...prev, { role: 'alert', text: response.message }])
-        setError('🚨 ' + response.message)
-      } else if (response.status === 'complete') {
-        setMessages((prev) => [...prev, { role: 'bot', text: response.message }])
-        setCollectedData(response.collected_data)
-        setSuccess('All symptoms collected! Ready for diagnosis.')
-      } else {
-        setMessages((prev) => [...prev, { role: 'bot', text: response.message }])
-        if (response.question) {
-          setCurrentQuestion(response.question)
-        }
-      }
-
-      setUserInput('')
-    } catch (err) {
-      setError('Failed to send message')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const submitTextDiagnosis = async () => {
-    if (!collectedData) return
-
-    setLoading(true)
+  const handleTextDiagnosis = async () => {
+    setLoading(true);
+    setError('');
     try {
       const res = await diagnosisApi.textDiagnosis(
-        collectedData.age,
-        collectedData.gender,
-        collectedData.symptom_text,
-        collectedData.duration_days,
-        collectedData.severity,
-        collectedData.temperature || 98.6,
-        collectedData.pain_level || 0
-      )
-
-      setResult(res.data)
-      setSuccess('Diagnosis completed!')
+        textForm.age,
+        textForm.gender,
+        textForm.symptom_text,
+        textForm.duration_days,
+        textForm.severity,
+        textForm.temperature,
+        textForm.pain_level
+      );
+      setResult(res.data);
     } catch (err) {
-      setError('Diagnosis failed: ' + (err.response?.data?.error || 'Unknown error'))
-    } finally {
-      setLoading(false)
+      setError(err.response?.data?.error || 'Failed to get diagnosis');
+      console.error(err);
     }
-  }
+    setLoading(false);
+  };
 
-  // Chatbot Tab
-  if (activeTab === 'text') {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <DisclaimerBanner />
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
 
-        <Card>
-          <h1 className="text-3xl font-bold mb-6">Symptom Diagnosis</h1>
+  const handleImageDiagnosis = async () => {
+    if (!imageFile) return;
+    setLoading(true);
+    setError('');
 
-          {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
-          {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    formData.append('image_type', 'xray');
 
-          {result ? (
-            <div className="space-y-6">
-              <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
-                <h3 className="text-lg font-bold text-green-800 mb-2">Diagnosis Result</h3>
-                <p className="text-2xl font-bold text-green-700 mb-4">{result.prediction.predicted_disease}</p>
-                <ConfidenceMeter score={result.prediction.confidence} />
-                <p className="mt-4 text-gray-700">{result.advice}</p>
-              </div>
+    try {
+      const res = await diagnosisApi.imageDiagnosis(formData);
+      setResult(res.data);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Image diagnosis failed');
+    }
+    setLoading(false);
+  };
 
-              <Button onClick={() => window.location.href = `/reports?id=${result.diagnosis_id}`}>
-                View Full Report
-              </Button>
-              <Button variant="secondary" onClick={() => window.location.reload()}>
-                New Diagnosis
-              </Button>
-            </div>
-          ) : !chatSessionId ? (
-            <div className="text-center space-y-4">
-              <p className="text-gray-600">Click below to start the symptom questionnaire:</p>
-              <Button onClick={startChat} disabled={loading}>
-                {loading ? 'Starting...' : 'Start Symptom Check'}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="bg-white border rounded-lg p-4 h-96 overflow-y-auto space-y-3">
-                {messages.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-500 text-white' : msg.role === 'alert' ? 'bg-red-100 text-red-800' : 'bg-gray-200 text-gray-800'}`}>
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-                {loading && <Loading message="Analyzing..." />}
-              </div>
+  return (
+    <div className="max-w-4xl mx-auto p-8">
+      <h1 className="text-4xl font-bold text-green-700 mb-8 text-center">🩺 DOC AI Diagnosis</h1>
 
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  placeholder="Type your answer..."
-                  disabled={loading || !currentQuestion}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <Button onClick={sendMessage} disabled={loading || !currentQuestion}>
-                  Send
-                </Button>
-              </div>
-
-              {collectedData && (
-                <Button onClick={submitTextDiagnosis} disabled={loading} className="w-full">
-                  {loading ? 'Processing...' : 'Get Diagnosis'}
-                </Button>
-              )}
-            </div>
-          )}
-        </Card>
+      <div className="flex gap-4 mb-8 bg-white p-2 rounded-3xl shadow">
+        {['text', 'image'].map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-4 rounded-2xl font-medium ${activeTab === tab ? 'bg-green-600 text-white' : 'bg-gray-100'}`}
+          >
+            {tab === 'text' ? '📝 Text Symptoms' : '🖼️ Image Only'}
+          </button>
+        ))}
       </div>
-    )
-  }
 
-  return <div className="container mx-auto px-4 py-8"><p>Other tabs coming soon...</p></div>
+      {error && <div className="bg-red-100 text-red-700 p-4 rounded-2xl mb-6">{error}</div>}
+
+      {activeTab === 'text' && (
+        <div className="bg-white rounded-3xl shadow p-8">
+          <textarea
+            value={textForm.symptom_text}
+            onChange={(e) => setTextForm({ ...textForm, symptom_text: e.target.value })}
+            className="w-full h-40 p-5 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-green-500"
+            placeholder="Describe your symptoms..."
+          />
+          <button
+            onClick={handleTextDiagnosis}
+            disabled={loading}
+            className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-semibold"
+          >
+            {loading ? 'Analyzing...' : 'Get Diagnosis'}
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'image' && (
+        <div className="bg-white rounded-3xl shadow p-8 text-center">
+          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="img" />
+          <label htmlFor="img" className="cursor-pointer block border-2 border-dashed border-gray-300 rounded-3xl py-16">
+            Click to upload X-ray or medical image
+          </label>
+          {imagePreview && <img src={imagePreview} className="mt-6 mx-auto max-h-80 rounded-2xl" />}
+          <button
+            onClick={handleImageDiagnosis}
+            disabled={loading || !imageFile}
+            className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-semibold"
+          >
+            Analyze Image
+          </button>
+        </div>
+      )}
+
+      {result && (
+        <div className="mt-10 bg-white rounded-3xl shadow p-8">
+          <h2 className="text-3xl font-bold text-green-700">
+            {result.final_diagnosis?.disease || result.prediction?.predicted_disease}
+          </h2>
+          <p className="text-2xl mt-4">
+            Confidence: <strong>{result.final_diagnosis?.confidence || result.prediction?.confidence}%</strong>
+          </p>
+          <p className="mt-6 text-lg">{result.advice}</p>
+        </div>
+      )}
+    </div>
+  );
 }

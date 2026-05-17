@@ -3,21 +3,45 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.db
-instance/
-.pytest_cache/
-.env
+
+# Virtual Environment
 venv/
+.venv/
+env/
+ENV/
 
-# Node
-node_modules/
-dist/
-/build/
+# Environment Variables
 .env
+.env.local
+.env.*.local
 
-# Logs
+# Database
+*.db
+*.sqlite3
+instance/
+
+# Logs & Reports
+logs/
 *.log
+app/static/uploads/
+app/static/reports/
 
-# OS
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE & OS
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
+
+# Frontend
+node_modules/
+dist/
+build/
+
+# ML Models (optional)
+# app/ml/*.h5
+# app/ml/*.joblib
