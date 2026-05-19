@@ -1,87 +1,98 @@
-import { useState } from 'react'
-import { locationApi } from '../api/client'
-import { ErrorAlert, SuccessAlert, Card, Button, Loading } from '../components/UiComponents'
+import { useState } from 'react';
+import { locationApi } from '../api/client';
 
-export function NearbyPage() {
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [placeType, setPlaceType] = useState('hospital')
-  const [hasLocation, setHasLocation] = useState(false)
+export default function NearbyPage() {
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [placeType, setPlaceType] = useState('hospital');
 
-  const getLocation = async () => {
-    setLoading(true)
-    setError('')
+  const getNearby = async () => {
+    setLoading(true);
+    setError('');
 
     try {
       const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject)
-      })
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+        });
+      });
 
-      const { latitude, longitude } = position.coords
+      const { latitude, longitude } = position.coords;
 
-      const res = await locationApi.nearby(latitude, longitude, placeType)
-      setResults(res.data.data.slice(0, 20))
-      setHasLocation(true)
+      const res = await locationApi.nearby(latitude, longitude, placeType, 5000);
+      setResults(res.data.facilities || res.data || []);
     } catch (err) {
-      setError('Location access denied or failed. Please enable location services or use manual search.')
+      setError('Unable to get location. Please allow location access or try manual search.');
+      console.error(err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold text-gray-900 mb-8">Nearby Medical Help</h1>
+    <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-green-700 mb-3">📍 Nearby Medical Help</h1>
+        <p className="text-gray-600 text-lg">Find hospitals, doctors, and pharmacies near you</p>
+      </div>
 
-      {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
+      {error && <div className="bg-red-100 text-red-700 p-4 rounded-2xl mb-8">{error}</div>}
 
-      <Card className="mb-8">
-        <h2 className="text-2xl font-bold mb-4">Find Nearby Services</h2>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold mb-2">Type of Service</label>
-            <select value={placeType} onChange={(e) => setPlaceType(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="hospital">Hospital</option>
-              <option value="doctor">Doctor</option>
-              <option value="clinic">Clinic</option>
-              <option value="pharmacy">Pharmacy</option>
+      <div className="bg-white rounded-3xl shadow p-8 mb-10">
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1">
+            <label className="block text-sm font-semibold mb-2">Service Type</label>
+            <select 
+              value={placeType} 
+              onChange={(e) => setPlaceType(e.target.value)}
+              className="input"
+            >
+              <option value="hospital">🏥 Hospital</option>
+              <option value="doctor">👨‍⚕️ Doctor / Clinic</option>
+              <option value="pharmacy">💊 Pharmacy</option>
             </select>
           </div>
 
-          <Button onClick={getLocation} disabled={loading} className="w-full">
-            {loading ? 'Getting location...' : '📍 Use Current Location'}
-          </Button>
+          <button 
+            onClick={getNearby} 
+            disabled={loading}
+            className="btn-primary px-10 py-3.5 text-lg"
+          >
+            {loading ? 'Finding...' : 'Find Nearby'}
+          </button>
         </div>
-      </Card>
+      </div>
 
       {results.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Results ({results.length} found)</h2>
-          {results.map((place, idx) => (
-            <Card key={idx} className="flex flex-col md:flex-row justify-between items-start md:items-center">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">{place.name}</h3>
-                <p className="text-sm text-gray-600">{place.address}</p>
-                {place.phone && <p className="text-sm text-gray-600">📞 {place.phone}</p>}
-                {place.rating && <p className="text-sm text-yellow-600">⭐ {place.rating}</p>}
+        <div>
+          <h2 className="text-2xl font-bold mb-6">Results Near You ({results.length})</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {results.map((place, index) => (
+              <div key={index} className="card">
+                <h3 className="font-bold text-xl text-gray-900">{place.name}</h3>
+                <p className="text-gray-600 mt-1">{place.address || place.vicinity}</p>
+                
+                {place.distance && <p className="text-sm text-green-600 mt-2">📍 {place.distance} km away</p>}
+                
+                <div className="mt-6 flex gap-3">
+                  {place.phone && (
+                    <a href={`tel:${place.phone}`} className="flex-1 text-center py-3 border border-gray-300 rounded-2xl hover:bg-gray-50">
+                      📞 Call
+                    </a>
+                  )}
+                  {place.map_url && (
+                    <a href={place.map_url} target="_blank" className="flex-1 text-center py-3 border border-gray-300 rounded-2xl hover:bg-gray-50">
+                      🗺️ Directions
+                    </a>
+                  )}
+                </div>
               </div>
-              {place.map_url && (
-                <a href={place.map_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 font-semibold mt-4 md:mt-0">
-                  View on Map →
-                </a>
-              )}
-            </Card>
-          ))}
+            ))}
+          </div>
         </div>
       )}
-
-      {hasLocation && results.length === 0 && !loading && (
-        <Card className="text-center text-gray-600">
-          <p>No results found for {placeType}. Try a different search type.</p>
-        </Card>
-      )}
     </div>
-  )
+  );
 }
