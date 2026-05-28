@@ -99,7 +99,14 @@ def train_text_model(force_retrain=False):
 def predict_diagnosis(input_data: dict):
     """Predict using free-text symptom description (recommended)."""
     if not os.path.exists(MODEL_PATH):
-        return {"error": "Model not trained. Run train_text_model() first."}
+        logger.warning("Text model not found. Using fallback placeholder prediction.")
+        return {
+            "predicted_disease": "Unknown",
+            "confidence": 0.0,
+            "model_accuracy": None,
+            "recommendation": "Text model not trained. This prediction is a fallback placeholder. Please train the text model for more accurate results.",
+            "error": "Model not trained. Run train_text_model() first."
+        }
 
     try:
         model_data = joblib.load(MODEL_PATH)
@@ -127,6 +134,7 @@ def predict_diagnosis(input_data: dict):
         }
 
     except Exception as e:
+        logger.error(f"Text prediction error: {e}")
         return {"error": f"Prediction error: {str(e)}"}
 
 

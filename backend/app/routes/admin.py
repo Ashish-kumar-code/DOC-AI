@@ -9,12 +9,15 @@ from sqlalchemy import text
 import psutil
 import os
 import sys
+import joblib
 from datetime import datetime
 
 from app.models import User, DiagnosisHistory, UploadedImage, ChatSession, NearbySearchCache
 from app.extensions import db
 from app.utils.error_handler import handle_errors, AuthorizationError
 from app.utils.rate_limiter import rate_limit
+from ..ml.text_model import train_text_model, MODEL_PATH as TEXT_MODEL_PATH
+from ..ml.image_model import train_image_model, MODEL_PATH as IMAGE_MODEL_PATH
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -129,6 +132,101 @@ def get_metrics():
         "performance": {
             "uptime_seconds": datetime.utcnow().timestamp() - datetime.utcnow().timestamp()
         }
+    }), 200
+
+
+@admin_bp.route('/models/status', methods=['GET'])
+@jwt_required()
+@require_admin
+@handle_errors
+def model_status():
+    """Return current model training status."""
+    text_path = os.getenv('TEXT_MODEL_PATH', TEXT_MODEL_PATH)
+    image_path = os.getenv('IMAGE_MODEL_PATH', IMAGE_MODEL_PATH)
+
+    text_status = 'untrained'
+    text_accuracy = None
+    if os.path.exists(text_path):
+        text_status = 'trained'
+        try:
+            model_data = joblib.load(text_path)
+            text_accuracy = model_data.get('accuracy')
+        except Exception:
+            text_accuracy = None
+
+    image_status = 'trained' if os.path.exists(image_path) else 'untrained'
+
+    return jsonify({
+        'text_model': {
+            'status': text_status,
+            'accuracy': text_accuracy
+        },
+        'image_model': {
+            'status': image_status
+        }
+    }), 200
+
+
+@admin_bp.route('/models/train/text', methods=['POST'])
+@jwt_required()
+@require_admin
+@handle_errors
+def train_text_model_endpoint():
+    """Train or reload the text diagnosis model."""
+    request_data = request.get_json(silent=True) or {}
+    force_retrain = str(request.args.get('force', request_data.get('force', False))).lower() in ('true', '1', 'yes')
+
+    result = train_text_model(force_retrain=force_retrain)
+
+    return jsonify({
+        'status': 'success',
+        'model': 'text',
+        'result': result,
+        'message': 'Text model training completed successfully.'
+    }), 200
+
+
+@admin_bp.route('/models/train/image', methods=['POST'])
+@jwt_required()
+@require_admin
+@handle_errors
+def train_image_model_endpoint():
+    """Train or reload the image classification model."""
+    request_data = request.get_json(silent=True) or {}
+    epochs = int(request_data.get('epochs', request.args.get('epochs', 5)))
+    train_dir = os.getenv('IMAGE_TRAIN_DIR', 'datasets/images/train')
+
+    result = train_image_model(train_dir=train_dir, epochs=epochs)
+
+    return jsonify({
+        'status': 'success',
+        'model': 'image',
+        'result': result,
+        'message': 'Image model training completed successfully.'
+    }), 200
+
+
+@admin_bp.route('/models/train/all', methods=['POST'])
+@jwt_required()
+@require_admin
+@handle_errors
+def train_all_models_endpoint():
+    """Train both the text and image models."""
+    request_data = request.get_json(silent=True) or {}
+    epochs = int(request_data.get('epochs', request.args.get('epochs', 5)))
+    train_dir = os.getenv('IMAGE_TRAIN_DIR', 'datasets/images/train')
+
+    text_result = train_text_model(force_retrain=True)
+    image_result = train_image_model(train_dir=train_dir, epochs=epochs)
+
+    return jsonify({
+        'status': 'success',
+        'model': 'all',
+        'result': {
+            'text': text_result,
+            'image': image_result
+        },
+        'message': 'All models retrained successfully.'
     }), 200
 
 

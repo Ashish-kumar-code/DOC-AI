@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Card, ErrorAlert, Label, Button } from '../components/UiComponents';
+import { LogIn, Heart } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,32 +29,47 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center py-12">
-      <div className="card w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center text-4xl mb-4">🩺</div>
-          <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-gray-600 mt-2">Sign in to access your health insights</p>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center py-12 px-6">
+      <Card className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-3xl mb-4">
+            <Heart className="text-green-600" size={32} />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900">DOC AI</h1>
+          <p className="text-gray-600 mt-2">Welcome back to your health dashboard</p>
         </div>
 
-        {error && <div className="bg-red-100 text-red-700 p-4 rounded-2xl mb-6">{error}</div>}
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6">
+            <ErrorAlert message={error} onDismiss={() => setError('')} />
+          </div>
+        )}
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold mb-2">Email Address</label>
+            <Label required htmlFor="email">
+              Email Address
+            </Label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               className="input"
-              placeholder="your@email.com"
+              placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">Password</label>
+            <Label required htmlFor="password">
+              Password
+            </Label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -65,17 +82,28 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full py-4 text-lg"
+            className="btn-primary-lg w-full flex items-center justify-center gap-2 mt-8"
           >
+            <LogIn size={20} />
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <p className="text-center mt-6 text-gray-600">
+        {/* Signup Link */}
+        <p className="text-center mt-8 text-gray-600">
           Don't have an account?{' '}
-          <Link to="/register" className="text-green-600 font-semibold hover:underline">Sign Up</Link>
+          <Link to="/register" className="link-primary font-semibold">
+            Create one
+          </Link>
         </p>
-      </div>
+
+        {/* Footer */}
+        <div className="mt-8 pt-8 border-t border-gray-200">
+          <p className="text-xs text-gray-600 text-center">
+            🔒 Your data is encrypted and secure
+          </p>
+        </div>
+      </Card>
     </div>
   );
 }

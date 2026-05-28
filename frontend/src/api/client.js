@@ -73,4 +73,11 @@ export const reportApi = {
     api.get(`/report/${diagnosisId}/pdf`, { responseType: 'blob' }),
 }
 
+export const adminApi = {
+  getModelStatus: () => api.get('/admin/models/status'),
+  trainTextModel: (force = false) => api.post(`/admin/models/train/text?force=${force}`),
+  trainImageModel: (epochs = 5) => api.post('/admin/models/train/image', { epochs }),
+  trainAllModels: (epochs = 5) => api.post('/admin/models/train/all', { epochs }),
+}
+
 export default api

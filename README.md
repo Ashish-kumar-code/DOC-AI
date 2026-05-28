@@ -105,6 +105,70 @@ Frontend (React + Vite) → REST API (Flask) → ML Services + Database
    python run.py
    ```
 
+### Run Backend in Production
+```bash
+gunicorn backend.run:app --bind 0.0.0.0:5000
+```
+
+---
+
+## 📤 Production Deployment
+
+### Frontend Deployment — Vercel
+- The frontend is configured for Vercel with `frontend/vercel.json`.
+- Deploy the `frontend` folder as a Vercel project.
+- Set the following Vercel environment variables:
+  - `VITE_API_URL=https://<your-backend-domain>/api`
+  - `VITE_APP_NAME=DOC AI` (optional)
+  - `VITE_APP_VERSION=0.1.0` (optional)
+- Build command: `npm install && npm run build`
+- Output directory: `frontend/dist`
+- SPA routing is handled by `frontend/vercel.json`.
+
+### Backend Deployment — Render
+- Use `render.yaml` at the repository root to deploy the backend and static frontend.
+- Render backend service:
+  - `buildCommand`: `pip install -r backend/requirements.txt`
+  - `startCommand`: `gunicorn backend.run:app --bind 0.0.0.0:$PORT`
+  - `env`: `python`
+- Required environment variables:
+  - `FLASK_ENV=production`
+  - `JWT_SECRET_KEY` (required)
+  - `SECRET_KEY` (required)
+  - `SQLALCHEMY_DATABASE_URI` (e.g. `sqlite:///doc_ai.db` or a PostgreSQL URL)
+- Optional environment variables:
+  - `GOOGLE_PLACES_API_KEY`
+  - `TEXT_MODEL_PATH=app/ml/text_model.joblib`
+  - `IMAGE_MODEL_PATH=app/ml/image_model.h5`
+  - `LOG_LEVEL=INFO`
+  - `LOG_DIR=logs`
+  - `RATELIMIT_ENABLED=true`
+  - `RATELIMIT_DEFAULT=100/60`
+
+### Environment Variable Setup
+- Backend: copy `backend/.env.example` to `backend/.env` for local development.
+- Frontend: copy `frontend/.env.example` to `frontend/.env.local` and update `VITE_API_URL`.
+- In production, Vercel and Render should set variables through their dashboard or YAML config, not local `.env` files.
+
+### Recommended Production Checklist
+1. Confirm `frontend/vercel.json` exists and enables SPA fallback.
+2. Confirm `render.yaml` points at `backend` and uses `gunicorn backend.run:app`.
+3. Validate backend config with `FLASK_ENV=production` and secure secrets.
+4. Set `VITE_API_URL` to the deployed backend API URL.
+5. Run local builds before deploy:
+   - `cd frontend && npm install && npm run build`
+   - `cd backend && pip install -r requirements.txt`
+6. Test critical flows after deploy:
+   - Register / login
+   - Diagnosis (text/image/multimodal)
+   - Report PDF download
+   - Nearby location search
+   - Dashboard and auth-protected routes
+
+### Notes
+- For production database durability, replace SQLite with PostgreSQL by updating `SQLALCHEMY_DATABASE_URI`.
+- Ensure the backend `JWT_SECRET_KEY` and `SECRET_KEY` are strong and unique.
+
 ### Frontend Setup
 
 1. **Navigate to Frontend**
@@ -120,6 +184,12 @@ Frontend (React + Vite) → REST API (Flask) → ML Services + Database
 3. **Start Development Server**
    ```bash
    npm run dev
+   ```
+
+4. **Environment Setup**
+   ```bash
+   # Create .env.local
+   VITE_API_URL=http://localhost:5000/api
    ```
 
 ---
@@ -210,7 +280,7 @@ Located in `tests/conftest.py`:
 - `GET /api/auth/profile` - Get user profile
 
 ### Diagnosis
-- `POST /api/diagnosis/symptoms` - Symptom-based diagnosis
+- `POST /api/diagnosis/text` - Symptom-based diagnosis
 - `POST /api/diagnosis/image` - Image-based diagnosis
 - `POST /api/diagnosis/multimodal` - Combined diagnosis
 
@@ -218,11 +288,15 @@ Located in `tests/conftest.py`:
 - `GET /api/location/nearby` - Find nearby medical facilities
 
 ### Reports
-- `GET /api/reports/generate` - Generate diagnosis report
+- `GET /api/report/:diagnosis_id/pdf` - Download generated PDF report
 
 ### Admin
 - `GET /api/admin/health` - System health check
 - `GET /api/admin/stats` - System statistics
+- `GET /api/admin/models/status` - Check model status
+- `POST /api/admin/models/train/text` - Train or reload text model
+- `POST /api/admin/models/train/image` - Train or reload image model
+- `POST /api/admin/models/train/all` - Train both models
 
 ---
 
@@ -268,20 +342,28 @@ DOC-AI/
    ```
 
 ### Production Setup
-1. Set up PostgreSQL database
+1. Set up PostgreSQL or a managed SQL database
 2. Configure environment variables
 3. Run database migrations
 4. Build and deploy frontend
 5. Start backend server
 
 ### Environment Variables
-Create a `.env` file with:
+Create a `.env` file from `.env.example` and update values:
 ```
 FLASK_ENV=production
 SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret
-DATABASE_URL=postgresql://user:password@localhost/dbname
+SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://user:password@localhost/doc_ai
+GOOGLE_PLACES_API_KEY=your-google-places-api-key
+IMAGE_MODEL_PATH=app/ml/image_model.h5
+TEXT_MODEL_PATH=app/ml/text_model.joblib
 ```
+
+### Deployment Files
+- `frontend/vercel.json` — Vercel static frontend deployment config
+- `render.yaml` — Render service definitions for backend and frontend
+- `backend/Procfile` — Backend startup command for production deployments
 
 ---
 
@@ -362,6 +444,12 @@ Expected output: All 31 imports verified successfully.
    npm run dev
    # Frontend runs on http://localhost:5173
    ```
+
+5. **Deploying the Frontend**
+   - Use `frontend/vercel.json` for Vercel static deployment.
+   - In Vercel, set `VITE_API_URL` to your backend API URL.
+   - Build command: `npm install && npm run build`
+   - Output directory: `frontend/dist`
 
 ---
 

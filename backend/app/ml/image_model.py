@@ -114,7 +114,14 @@ def train_image_model(train_dir, val_dir=None, num_classes=2, epochs=10, batch_s
 def predict_image(file_path):
     """Predict from medical image"""
     if not os.path.exists(MODEL_PATH):
-        raise FileNotFoundError("Image model not found. Please train first.")
+        logger.warning("Image model not found. Using fallback placeholder prediction.")
+        return {
+            "predicted_class": "Unknown",
+            "class_index": None,
+            "confidence": 0.0,
+            "all_probabilities": {name: 0.0 for name in CLASS_NAMES},
+            "error": "Image model not trained. Run train_image_model() first."
+        }
 
     try:
         model = load_model(MODEL_PATH)
@@ -142,7 +149,13 @@ def predict_image(file_path):
 
     except Exception as e:
         logger.error(f"Image prediction error: {e}")
-        return {"error": str(e)}
+        return {
+            "predicted_class": "Unknown",
+            "class_index": None,
+            "confidence": 0.0,
+            "all_probabilities": {name: 0.0 for name in CLASS_NAMES},
+            "error": str(e)
+        }
 
 
 # For backward compatibility with dummy model (if needed)

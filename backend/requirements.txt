@@ -17,6 +17,6 @@ Pillow~=10.0.0
 opencv-python~=4.8.1.76
 reportlab~=4.0.0
 requests~=2.31.0
-python-dotenv~=1.0.0
 pytest~=7.4.3
 psutil~=5.9.0
+gunicorn~=22.0.0

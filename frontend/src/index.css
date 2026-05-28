@@ -2,19 +2,186 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Medical Green Theme - Professional SaaS */
+:root {
+  --color-primary: #16a34a;
+  --color-primary-dark: #15803d;
+  --color-primary-light: #22c55e;
+  --color-primary-50: #f0fdf4;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+}
+
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: #f8fafc;
+  color: #1f2937;
 }
 
+/* ===== CARDS ===== */
 .card {
-  @apply bg-white rounded-3xl shadow-xl border border-gray-100 p-8;
+  @apply bg-white rounded-3xl shadow-lg border border-gray-100 p-8 transition-all hover:shadow-xl;
 }
 
+.card-sm {
+  @apply bg-white rounded-2xl shadow-md border border-gray-100 p-6;
+}
+
+.card-bordered {
+  @apply bg-white rounded-3xl shadow-lg border-2 border-green-200 p-8;
+}
+
+.card-highlight {
+  @apply bg-gradient-to-br from-green-50 to-emerald-50 rounded-3xl shadow-lg border border-green-200 p-8;
+}
+
+/* ===== BUTTONS ===== */
 .btn-primary {
-  @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-3.5 px-8 rounded-2xl transition-all;
+  @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-3.5 px-8 rounded-2xl transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
+.btn-primary-lg {
+  @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-10 rounded-2xl transition-all duration-200 text-lg active:scale-95;
+}
+
+.btn-secondary {
+  @apply bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold py-3.5 px-8 rounded-2xl transition-all duration-200;
+}
+
+.btn-outline {
+  @apply bg-white border-2 border-green-600 text-green-600 hover:bg-green-50 font-semibold py-3.5 px-8 rounded-2xl transition-all duration-200;
+}
+
+.btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-3.5 px-8 rounded-2xl transition-all duration-200;
+}
+
+.btn-sm {
+  @apply bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-5 rounded-xl transition-all;
+}
+
+/* ===== INPUTS & FORMS ===== */
 .input {
-  @apply w-full px-5 py-3.5 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50;
+  @apply w-full px-5 py-3.5 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400 transition-all;
+}
+
+.input-lg {
+  @apply w-full px-6 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 transition-all text-lg;
+}
+
+.input-error {
+  @apply w-full px-5 py-3.5 border-2 border-red-400 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 bg-red-50;
+}
+
+textarea.input {
+  @apply resize-y;
+}
+
+select.input {
+  @apply cursor-pointer;
+}
+
+/* ===== ALERTS & NOTIFICATIONS ===== */
+.alert {
+  @apply rounded-2xl border-l-4 p-5 shadow-sm;
+}
+
+.alert-success {
+  @apply bg-green-50 border-l-green-500 border-green-200;
+}
+
+.alert-success-text {
+  @apply text-green-900;
+}
+
+.alert-error {
+  @apply bg-red-50 border-l-red-500 border-red-200;
+}
+
+.alert-error-text {
+  @apply text-red-900;
+}
+
+.alert-warning {
+  @apply bg-amber-50 border-l-amber-500 border-amber-200;
+}
+
+.alert-warning-text {
+  @apply text-amber-900;
+}
+
+.alert-info {
+  @apply bg-blue-50 border-l-blue-500 border-blue-200;
+}
+
+.alert-info-text {
+  @apply text-blue-900;
+}
+
+/* ===== BADGES ===== */
+.badge {
+  @apply inline-flex items-center px-3.5 py-1.5 rounded-full text-sm font-semibold;
+}
+
+.badge-success {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-danger {
+  @apply bg-red-100 text-red-800;
+}
+
+.badge-warning {
+  @apply bg-amber-100 text-amber-800;
+}
+
+/* ===== LOADING SPINNER ===== */
+.spinner {
+  @apply inline-block h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-green-600;
+}
+
+.spinner-sm {
+  @apply inline-block h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-green-600;
+}
+
+/* ===== TABS ===== */
+.tabs {
+  @apply flex gap-3 border-b-2 border-gray-200;
+}
+
+.tab-button {
+  @apply px-6 py-3 border-b-2 border-transparent font-medium text-gray-700 hover:text-green-600 hover:border-green-200 transition-all;
+}
+
+.tab-button-active {
+  @apply border-green-600 text-green-600 font-semibold;
+}
+
+/* ===== LABELS ===== */
+.label {
+  @apply block text-sm font-semibold text-gray-700 mb-2.5;
+}
+
+.label-required::after {
+  @apply content-['*'] text-red-600 ml-1;
+}
+
+/* ===== LINKS ===== */
+.link-primary {
+  @apply text-green-600 hover:text-green-700 font-medium transition-colors;
+}
+
+.link-secondary {
+  @apply text-gray-600 hover:text-gray-900 font-medium transition-colors;
+}
+
+/* ===== UTILITY SPACING ===== */
+.section-spacing {
+  @apply py-12 px-6;
+}
+
+.content-max-width {
+  @apply max-w-6xl mx-auto;
 }

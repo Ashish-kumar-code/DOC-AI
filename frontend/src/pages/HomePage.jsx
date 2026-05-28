@@ -1,100 +1,188 @@
-import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { Card, Button } from '../components/UiComponents'
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Card, DisclaimerBanner } from '../components/UiComponents';
+import {
+  MessageCircle,
+  Image as ImageIcon,
+  Zap,
+  MapPin,
+  TrendingUp,
+  FileText,
+  Shield,
+  Zap as ZapIcon,
+} from 'lucide-react';
 
 export function HomePage() {
-  const { user } = useAuth()
+  const { user } = useAuth();
+
+  const features = [
+    {
+      icon: MessageCircle,
+      title: 'Text Symptoms',
+      desc: 'Describe your symptoms and get AI-powered analysis',
+    },
+    {
+      icon: ImageIcon,
+      title: 'Image Analysis',
+      desc: 'Upload X-rays or medical images for AI diagnosis',
+    },
+    {
+      icon: Zap,
+      title: 'Multimodal Fusion',
+      desc: 'Combine symptoms and images for better accuracy',
+    },
+    {
+      icon: MapPin,
+      title: 'Nearby Help',
+      desc: 'Find hospitals, doctors & pharmacies near you',
+    },
+    {
+      icon: TrendingUp,
+      title: 'Dashboard',
+      desc: 'Track your diagnosis history and health trends',
+    },
+    {
+      icon: FileText,
+      title: 'Reports',
+      desc: 'Download professional medical reports as PDF',
+    },
+  ];
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100 min-h-screen">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 py-20">
-        <div className="max-w-3xl mx-auto text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-6">
-            DOC AI
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
+      {/* HERO SECTION */}
+      <div className="py-20 px-6">
+        <div className="content-max-width text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-3xl mb-6">
+            <ZapIcon className="text-green-600" size={40} />
+          </div>
+
+          <h1 className="text-6xl md:text-7xl font-bold text-gray-900 mb-6">
+            DOC <span className="text-green-600">AI</span>
           </h1>
-          <p className="text-xl text-gray-700 mb-4">
-            Your intelligent healthcare companion powered by AI
-          </p>
-          <p className="text-gray-600 mb-8">
-            Get preliminary symptom analysis, receive nearby doctor recommendations, and access your medical history in one place.
+
+          <p className="text-2xl text-gray-700 mb-4 leading-relaxed">
+            Your intelligent healthcare companion powered by medical AI
           </p>
 
+          <p className="text-lg text-gray-600 mb-10 max-w-2xl mx-auto">
+            Get preliminary symptom analysis, receive nearby doctor recommendations, 
+            and access your medical history—all in one secure platform.
+          </p>
+
+          {/* CTA Buttons */}
           {!user ? (
-            <div className="flex gap-4 justify-center">
-              <Link to="/login" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition">
-                Login
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <Link
+                to="/login"
+                className="btn-primary-lg flex items-center justify-center"
+              >
+                Sign In
               </Link>
-              <Link to="/register" className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-lg font-semibold transition">
-                Sign Up
+              <Link
+                to="/register"
+                className="btn-outline flex items-center justify-center"
+              >
+                Create Account
               </Link>
             </div>
           ) : (
-            <Link to="/dashboard" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold inline-block transition">
+            <Link
+              to="/dashboard"
+              className="btn-primary-lg inline-flex items-center justify-center"
+            >
               Go to Dashboard
             </Link>
           )}
-        </div>
 
-        {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
-          {[
-            {
-              icon: '💬',
-              title: 'Symptom Chatbot',
-              desc: 'Interactive symptom collection through guided conversation',
-            },
-            {
-              icon: '🖼️',
-              title: 'Image Analysis',
-              desc: 'AI-powered medical image diagnosis (X-ray, skin lesions)',
-            },
-            {
-              icon: '🔄',
-              title: 'Multimodal Fusion',
-              desc: 'Combined text and image analysis for better accuracy',
-            },
-            {
-              icon: '📍',
-              title: 'Nearby Help',
-              desc: 'Find doctors, hospitals & pharmacies near you',
-            },
-            {
-              icon: '📊',
-              title: 'Dashboard',
-              desc: 'View diagnosis history and trends',
-            },
-            {
-              icon: '📄',
-              title: 'Reports',
-              desc: 'Download medical reports as PDF',
-            },
-          ].map((feature, idx) => (
-            <Card key={idx}>
-              <div className="text-4xl mb-3">{feature.icon}</div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">{feature.title}</h3>
-              <p className="text-gray-600">{feature.desc}</p>
-            </Card>
-          ))}
+          {/* Trust Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full">
+            <Shield className="text-green-600" size={16} />
+            <span className="text-sm font-medium text-green-900">
+              Your data is encrypted and secure
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Disclaimer */}
-      <div className="container mx-auto px-4 py-12 max-w-2xl">
-        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded">
-          <h3 className="font-bold text-yellow-900 mb-2">⚠️ Important Medical Disclaimer</h3>
-          <p className="text-yellow-800 text-sm">
-            DOC AI is for educational purposes only. It is NOT a replacement for professional medical advice, diagnosis, or treatment. Always consult with a licensed healthcare provider. In case of emergency, contact emergency services immediately.
+      {/* FEATURES SECTION */}
+      <div className="py-20 px-6 bg-white/50 backdrop-blur">
+        <div className="content-max-width">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl font-bold text-gray-900 mb-4">
+              Powerful Features
+            </h2>
+            <p className="text-xl text-gray-600">
+              Everything you need for intelligent health management
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, idx) => {
+              const IconComponent = feature.icon;
+              return (
+                <Card key={idx} className="hover:shadow-lg transition-shadow">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <IconComponent className="text-green-600" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900 mb-2">
+                        {feature.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm">{feature.desc}</p>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* DISCLAIMER SECTION */}
+      <div className="py-20 px-6">
+        <div className="content-max-width max-w-2xl">
+          <DisclaimerBanner />
+        </div>
+      </div>
+
+      {/* CTA SECTION */}
+      <div className="py-20 px-6 bg-gradient-to-r from-green-600 to-emerald-600">
+        <div className="content-max-width text-center">
+          <h2 className="text-5xl font-bold text-white mb-6">
+            Ready to Get Started?
+          </h2>
+          <p className="text-xl text-green-100 mb-10">
+            Join thousands of users managing their health with DOC AI
           </p>
+          {!user ? (
+            <Link
+              to="/register"
+              className="btn-primary-lg bg-white text-green-600 hover:bg-gray-50"
+            >
+              Create Your Account
+            </Link>
+          ) : (
+            <Link
+              to="/diagnosis"
+              className="btn-primary-lg bg-white text-green-600 hover:bg-gray-50"
+            >
+              Start Your First Diagnosis
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-20">
-        <div className="container mx-auto px-4 text-center">
-          <p>&copy; 2026 DOC AI. All rights reserved. Educational purposes only.</p>
+      {/* FOOTER */}
+      <footer className="bg-gray-900 text-gray-300 py-12 px-6">
+        <div className="content-max-width text-center">
+          <p className="mb-2">© 2026 DOC AI. All rights reserved.</p>
+          <p className="text-sm text-gray-500">
+            Educational purposes only. Always consult with healthcare professionals.
+          </p>
         </div>
       </footer>
     </div>
-  )
+  );
 }

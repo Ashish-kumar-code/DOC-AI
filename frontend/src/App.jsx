@@ -1,16 +1,16 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import ProtectedRoute from './components/ProtectedRoute';
 
-import { Navbar } from './components/Navbar';
+import Navbar from './components/Navbar';
 import { HomePage } from './pages/HomePage';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { DiagnosisPage } from './pages/DiagnosisPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { ReportsPage } from './pages/ReportsPage';
-import { NearbyPage } from './pages/NearbyPage';
-import { ProfilePage } from './pages/ProfilePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DiagnosisPage from './pages/DiagnosisPage';
+import DashboardPage from './pages/DashboardPage';
+import ReportsPage from './pages/ReportsPage';
+import NearbyPage from './pages/NearbyPage';
+import ProfilePage from './pages/ProfilePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 function App() {

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from flask import Blueprint, send_file, jsonify
 from ..models import DiagnosisHistory, User
 from ..services.report_service import generate_report_pdf
@@ -26,7 +27,8 @@ def get_pdf_report(diagnosis_id):
         "advice": diagnosis.advice or "Follow doctor advice.",
     }
 
-    file_path = f"backend/app/static/reports/diagnosis_{diagnosis_id}.pdf"
+    file_path = Path(__file__).resolve().parent.parent / "static" / "reports" / f"diagnosis_{diagnosis_id}.pdf"
+    file_path = str(file_path)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     generate_report_pdf(file_path, report_context)
 

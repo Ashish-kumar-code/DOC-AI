@@ -301,5 +301,51 @@ def download_report(diagnosis_id):
     return send_file(report_path, as_attachment=True, download_name=f"DOC_AI_Report_{diagnosis_id}.pdf")
 
 
-# Keep your existing nearby-facilities and history routes as they are
-# (You can keep them unchanged)
+# ====================== DIAGNOSIS HISTORY ======================
+@diagnosis_bp.route("/history", methods=["GET"])
+@jwt_required()
+def get_diagnosis_history():
+    """Get user's diagnosis history with pagination"""
+    user_id = get_jwt_identity()
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 10, type=int)
+
+    try:
+        query = DiagnosisHistory.query.filter_by(user_id=user_id).order_by(DiagnosisHistory.created_at.desc())
+        total = query.count()
+        
+        diagnoses = query.paginate(page=page, per_page=limit, error_out=False)
+        
+        return jsonify({
+            "success": True,
+            "data": [d.to_dict() for d in diagnoses.items],
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total": total,
+                "pages": (total + limit - 1) // limit
+            }
+        }), 200
+    except Exception as exc:
+        ErrorLogger.log_error(exc, context="get_diagnosis_history", user_id=user_id)
+        return jsonify({"error": "Failed to fetch history", "detail": str(exc)}), 500
+
+
+@diagnosis_bp.route("/history/<int:diagnosis_id>", methods=["GET"])
+@jwt_required()
+def get_diagnosis_detail(diagnosis_id):
+    """Get specific diagnosis details"""
+    user_id = get_jwt_identity()
+    
+    try:
+        diagnosis = DiagnosisHistory.query.filter_by(id=diagnosis_id, user_id=user_id).first()
+        if not diagnosis:
+            return jsonify({"error": "Diagnosis not found"}), 404
+        
+        return jsonify({
+            "success": True,
+            "data": diagnosis.to_dict()
+        }), 200
+    except Exception as exc:
+        ErrorLogger.log_error(exc, context="get_diagnosis_detail", user_id=user_id)
+        return jsonify({"error": "Failed to fetch diagnosis", "detail": str(exc)}), 500
